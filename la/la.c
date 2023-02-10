@@ -28,10 +28,12 @@ void analyze(char *line) {
       analyze(spl);
       spl = strtok(NULL, "\n");
     }
+
+    return;
   }
 
   if (is_preprocessor_directive(line)) {
-    printf("%s\t\t-\t\tPreprocessor directive\n", line);
+    printf("%s -\t\tPreprocessor directive\n", line);
   } else if (is_single_line_comment(line)) {
   } else if (is_multi_line_comment(line)) {
   } else if (is_function_call(line)) {
@@ -87,7 +89,7 @@ void analyze(char *line) {
       printf("%s\t\t-\t\tInteger constant\n", line);
       scanned_val(line);
     } else if (is_string_constant(line)) {
-      printf("%s\t\t-\t\tString constant\n", line);
+      printf("%s -\t\tString constant\n", line);
     } else {
       printf("%s\t\t-\t\tUnknown\n", line);
     }
@@ -102,8 +104,6 @@ void read_program(char *file_name) {
     error("Unable to open file");
 
   int n = read(fd, buff, MAX);
-
-  buff[n - 1] = '\0';
   analyze(trim_white_space(buff));
 
   close(fd);

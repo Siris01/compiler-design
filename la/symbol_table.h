@@ -59,7 +59,7 @@ void scanned_val(char *val) {
 
 void print_symbol_table() {
   int i = 0;
-  printf("\n\n\n\t\t\tSymbol Table\n\n");
+  printf("\n\n\t\t\tSymbol Table\n\n");
   printf("Name\t\tType\t\tbytes\t\tAddress\t\tValue");
 
   for (i = 0; i < scanned; i++) {
