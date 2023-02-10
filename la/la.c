@@ -1,5 +1,6 @@
 #include "lexical_analyzer.h"
 #include "string_utils.h"
+#include "symbol_table.h"
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -45,6 +46,9 @@ void analyze(char *line) {
           analyze(trim_white_space(prev));
         }
         printf("%s\t\t-\t\tOperator\n", operators[i]);
+        if (strcmp(operators[i], "=") == 0) {
+          scanned_assignment();
+        }
         analyze(trim_white_space(line + n + 1));
         return;
       }
@@ -78,8 +82,10 @@ void analyze(char *line) {
       printf("%s\t\t-\t\tKeyword\n", line);
     } else if (is_identifier(line)) {
       printf("%s\t\t-\t\tIdentifier\n", line);
+      scanned_ident(line);
     } else if (is_integer_constant(line)) {
       printf("%s\t\t-\t\tInteger constant\n", line);
+      scanned_val(line);
     } else if (is_string_constant(line)) {
       printf("%s\t\t-\t\tString constant\n", line);
     } else {
@@ -103,6 +109,8 @@ void read_program(char *file_name) {
   close(fd);
   if (buff)
     free(buff);
+
+  print_symbol_table();
 }
 
 int main(int argc, void *argv[]) {
