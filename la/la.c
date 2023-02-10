@@ -54,7 +54,7 @@ void analyze(char *line) {
         analyze(trim_white_space(line + n + 1));
         return;
       }
-    } // TOOD: Do not split the line futher if it is part of a string ""
+    }
 
     int n = substring_index(line, " ");
     int is_part_of_string = substring_index(line, "\"");
