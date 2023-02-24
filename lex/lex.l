@@ -12,19 +12,19 @@ space   [ \t]
 special "."|","|"("|")"|"["|"]"|"{"|"}"|";"
 pred	#.*
 data_type "int"|"float"|"double"|"char"|"bool"
-keyword "if"|"else"|"for"|"while"|"return"|"switch"|"case"|"break"|"continue"|"struct"|"sizeof"|{data_type}
-fname "printf"|"scanf"|"getch"|"clrscr"|"main"
-function {fname}{space}*"(".*")"
+keyword "public"|"private"|"protected"|"void"|"static"|"class"|"new"|"if"|"else"|"for"|"while"|"return"|"switch"|"case"|"break"|"continue"{data_type}
+function ({id}"."?)+
 arithmetic "+"|"-"|"*"|"/"|"%"
 relational ">"|"<"|">="|"<="|"!="|"=="
 unary   "++"|"--"
 arith_assign "+="|"-="|"*="|"/="|"%="
-logical "&amp;&amp;"|"||"|"!"
-bitwise "&amp;"|"|"|"^"|"<<"|">>"
-single_comment  "//".*\n
+logical "&&"|"||"|"!"
+bitwise "&"|"|"|"^"|"<<"|">>"
+single_comment  "//".*
 newline \n
 multi_comment "/*"[^*/]*"*/"
-char_const '.*';
+char_const '.*'
+string_const \"[^"\n]*\"
 
 %%
 {pred} { printf("%s - Predecessor Directive\n",yytext); }
@@ -33,8 +33,8 @@ char_const '.*';
 {single_comment} { printf("%s - Single line Comment\n",yytext); }
 {multi_comment} { printf("%s - Multi Line Comment\n",yytext); }
 {keyword} { printf("%s - Keyword\n",yytext); }
-{function} { printf("%s - Function Call\n",yytext); }
 {id} { printf("%s - Identifier\n",yytext); }
+{function}/\s*\(.*\) { printf("%s - Function\n",yytext); }
 [=] { printf("%s - Assignment Operator\n",yytext); }
 {hex_const}|{number} { printf("%s - Integer Constant\n",yytext); }
 {float_number} { printf("%s - Floating point Constant\n",yytext); }
@@ -45,6 +45,7 @@ char_const '.*';
 {relational} { printf("%s - Relational Operator\n",yytext); }
 {arithmetic} { printf("%s - Arithmetic Operator\n",yytext); }
 {char_const} { printf("%s - Character Constant\n",yytext); }
+{string_const} { printf("%s - String Constant\n",yytext); }
 {special} { printf("%s - Special Character\n",yytext); }
 %%
 
