@@ -12,7 +12,7 @@ space   [ \t]
 special "."|","|"("|")"|"["|"]"|"{"|"}"|";"
 pred	#.*
 data_type "int"|"float"|"double"|"char"|"bool"
-keyword "public"|"private"|"protected"|"void"|"static"|"class"|"new"|"if"|"else"|"for"|"while"|"return"|"switch"|"case"|"break"|"continue"{data_type}
+keyword "public"|"private"|"protected"|"void"|"static"|"class"|"new"|"if"|"else"|"for"|"while"|"return"|"switch"|"case"|"break"|"continue"|{data_type}
 function ({id}"."?)+
 arithmetic "+"|"-"|"*"|"/"|"%"
 relational ">"|"<"|">="|"<="|"!="|"=="
