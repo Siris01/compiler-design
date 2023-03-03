@@ -8,12 +8,13 @@ hex_const 0[xX][a-fA-F0-9]+
 number [0-9]+
 float_number	"0"|[0-9]+"."[0-9]+
 id  [a-zA-Z_][a-zA-Z0-9_]*
+array {id}\[[^\]]*\]
 space   [ \t]
 special "."|","|"("|")"|"["|"]"|"{"|"}"|";"
 pred	#.*
 data_type "int"|"float"|"double"|"char"|"bool"
 keyword "public"|"private"|"protected"|"void"|"static"|"class"|"new"|"if"|"else"|"for"|"while"|"return"|"switch"|"case"|"break"|"continue"|{data_type}
-function ({id}"."?)+
+function ({id}"."?)+\s*\([^\)]*\)
 arithmetic "+"|"-"|"*"|"/"|"%"
 relational ">"|"<"|">="|"<="|"!="|"=="
 unary   "++"|"--"
@@ -34,7 +35,8 @@ string_const \"[^"\n]*\"
 {multi_comment} { printf("%s - Multi Line Comment\n",yytext); }
 {keyword} { printf("%s - Keyword\n",yytext); }
 {id} { printf("%s - Identifier\n",yytext); }
-{function}/\s*\(.*\) { printf("%s - Function\n",yytext); }
+{array} { printf("%s - Array\n",yytext); }
+{function} { printf("%s - Function\n",yytext); }
 [=] { printf("%s - Assignment Operator\n",yytext); }
 {hex_const}|{number} { printf("%s - Integer Constant\n",yytext); }
 {float_number} { printf("%s - Floating point Constant\n",yytext); }
