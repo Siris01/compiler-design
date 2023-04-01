@@ -7,6 +7,17 @@
 	int yylex(void);
 	void yyerror(char* s);
 	extern int yylval;
+	int line=0;
+
+	int num_of_newlines(char *str) {
+		int count=0, i=0;
+		while(str[i]!='\0') {
+			if(str[i]=='\n')
+				count++;
+			i++;
+		}
+		return count;
+	}
 %}
 
 digit   [0-9]
@@ -15,13 +26,11 @@ hex_const 0[xX][a-fA-F0-9]+
 number [0-9]+
 float_number	"0"|[0-9]+"."[0-9]+
 id  [a-zA-Z_][a-zA-Z0-9_]*
-array {id}\[[^\]]*\]
 space   [ \t]
 special "."|","|"("|")"|"["|"]"|"{"|"}"|";"
-pred	#.*
-data_type "int"|"float"|"double"|"char"|"bool"
+visibility "public"|"private"|"protected"
+data_type "int"|"float"|"double"|"char"|"bool"|"string"|"void"|"String"
 keyword "public"|"private"|"protected"|"void"|"static"|"class"|"new"|"if"|"else"|"for"|"while"|"return"|"switch"|"case"|"break"|"continue"|{data_type}
-function ({id}"."?)+\s*\([^\)]*\)
 arithmetic "+"|"-"|"*"|"/"|"%"
 relational ">"|"<"|">="|"<="|"!="|"=="
 unary   "++"|"--"
@@ -35,19 +44,26 @@ char_const '.*'
 string_const \"[^"\n]*\"
 
 %%
-{pred} { printf("%s - Predecessor Directive\n",yytext); }
-{newline} { }
+"class" { printf("%s - Class keyword\n",yytext); return CLASS; }
+"new" { printf("%s - New keyword\n",yytext); return NEW; }
+"return" { printf("%s - Return keyword\n",yytext); return RETURN; }
+"static" { printf("%s - Static keyword\n",yytext); return STATIC; }
+"if" { printf("%s - If keyword\n",yytext); return IF; }
+"else" { printf("%s - Else keyword\n",yytext); return ELSE; }
+"for" { printf("%s - For keyword\n",yytext); return FOR; }
+"System.out.println" { printf("%s - print statement\n",yytext); return PRINT; }
+{newline} { line++; }
 {space}+ { }
 {single_comment} { printf("%s - Single line Comment\n",yytext); }
-{multi_comment} { printf("%s - Multi Line Comment\n",yytext); }
+{multi_comment} { printf("%s - Multi Line Comment\n",yytext); line+=num_of_newlines(yytext); }
+{visibility} { printf("%s - Visibility\n",yytext); return VISIBILITY; }
+{data_type} { printf("%s - Data Type\n",yytext); return DATA_TYPE; }
 {keyword} { printf("%s - Keyword\n",yytext); return *yytext; }
 {id} { printf("%s - Identifier\n",yytext); return ID; }
-{array} { printf("%s - Array\n",yytext); return *yytext; }
-{function} { printf("%s - Function\n",yytext); return *yytext; }
 [=] { printf("%s - Assignment Operator\n",yytext); return *yytext; }
 {hex_const}|{number} { printf("%s - Integer Constant\n",yytext); return NUMBER; }
 {float_number} { printf("%s - Floating point Constant\n",yytext); return NUMBER; }
-{arithmetic}[=] { printf("%s - Arithmetic Assignment Operator\n",yytext); return *yytext; }
+{arithmetic}[=] { printf("%s - Arithmetic Assignment Operator\n",yytext); return ARITH_ASSIGN_OP; }
 {logical} { printf("%s - Logical Operator\n",yytext); return LOGICAL_OP; }
 {bitwise} { printf("%s - Bitwise Operator\n",yytext); return BITWISE_OP; }
 {unary} { printf("%s - Unary Operator\n",yytext); return UNARY_OP; }
@@ -55,5 +71,5 @@ string_const \"[^"\n]*\"
 {arithmetic} { printf("%s - Arithmetic Operator\n",yytext); return ARITHMETIC_OP; }
 {char_const} { printf("%s - Character Constant\n",yytext); return CHAR; }
 {string_const} { printf("%s - String Constant\n",yytext); return STRING; }
-{special} { printf("%s - Special Character\n",yytext); return SPL; }
+{special} { printf("%s - Special Character\n",yytext); return *yytext; }
 %%

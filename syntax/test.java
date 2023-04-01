@@ -8,7 +8,7 @@ class Main {
 			System.out.println("A is smaller than 5");
 		}
 
-		for (int i = 0; i <= 10; i = i + 2) {
+		for (int i = 0; i <= 10; i += 2) {
  			System.out.println(i);
 		}
 	}

@@ -12,11 +12,11 @@ class QuickSort
         int i = (low-1); // index of smaller element
         for (int j=low; j<high; j++)
         {
-            // If current element is smaller than or
-            // equal to pivot
+            /* If current element is smaller than or
+            equal to pivot*/
             if (arr[j] <= pivot)
             {
-                i++;
+                i = i+1;
  
                 // swap arr[i] and arr[j]
                 int temp = arr[i];
@@ -58,7 +58,7 @@ class QuickSort
     {
         int n = arr.length;
         for (int i=0; i<n; ++i)
-            System.out.print(arr[i]+" ");
+            System.out.println(arr[i]+" ");
         System.out.println();
     }
  
