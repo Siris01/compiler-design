@@ -44,7 +44,7 @@ statement_list:
 	;
 statement: 
 	declaration
-	| assignemnt
+	| assignment
 	| if_statement
 	| loop_statement
 	| print_statement
@@ -56,7 +56,7 @@ declaration:
 	| ID assign_dec_lhs ';' // Class
 	| ID assign_dec_lhs '=' expression ';' // Class
 	;
-assignemnt:
+assignment:
 	assign_dec_lhs '=' expression ';'
 	| assign_dec_lhs '=' ID ';'
 	| assign_dec_lhs '=' NUMBER ';'
