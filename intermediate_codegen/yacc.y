@@ -3,74 +3,24 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
+#define MAX_TACS 1024
 
 int yylex(void);
 int yyerror();
-#include "y.tab.h"
 extern int line;
 int error = 0;
 
-struct three_address_code {
-	char* op1;
-	char* op2;
-	char* op;
-};
-
-struct three_address_code tac[100];
-//memset(tac, 0, sizeof(tac));
-
+char* tac[MAX_TACS];
 int tac_index = 0;
+int temp_index = 1;
+int label_index = 1;
 
-void add_tac(char* op1, char* op2, char* op) {
-	tac[tac_index].op1 = (char*)malloc(sizeof(char)*strlen(op1));
-	tac[tac_index].op1 = op1;
+char* temp;
 
-	tac[tac_index].op2 = (char*)malloc(sizeof(char)*strlen(op2));
-	tac[tac_index].op2 = op2;
-
-	tac[tac_index].op = (char*)malloc(sizeof(char)*strlen(op));
-	tac[tac_index].op = op;
-
+void add_tac(char* str) {
+	tac[tac_index] = (char*) malloc(sizeof(char) * strlen(str));
+	strcpy(tac[tac_index], str);
 	tac_index++;
-}
-
-char* get_tac_label(int index) {
-    int rounds = 0;
-    while (index >= pow(26, rounds+1)) {
-        index -= pow(26, rounds+1);
-        rounds++;
-    }
-
-    char* label = (char*)malloc(rounds+2); // create a string to store the label
-    int i;
-    for (i = 0; i < rounds+2; i++) {
-        label[i] = 'A' + (index % 26);
-        index /= 26;
-    }
-    label[rounds+1] = '\0'; // terminate the string with null character
-
-    // reverse the string
-    int len = strlen(label);
-    char temp;
-    for (i = 0; i < len/2; i++) {
-        temp = label[i];
-        label[i] = label[len-i-1];
-        label[len-i-1] = temp;
-    }
-
-    return label;
-}
-
-void print_tac() {
-	int i;
-
-	for(i = 0; i < tac_index; i++) {
-		if (tac[i].op == 0) { //Special GOTO case
-			printf("GOTO %c\n", tac[i].op1);
-		} else {
-			printf("%s: %s %s %s\n", get_tac_label(i), tac[i].op1, tac[i].op, tac[i].op2);
-		}
-	}
 }
 %}
 
@@ -84,7 +34,7 @@ void print_tac() {
     char *str;
 }
 
-%type<str> ARITHMETIC_OP expression
+%type<str> expression statement_list assign_dec_lhs assignment RELATIONAL_OP ARITHMETIC_OP NUMBER
 %%
 
 program: 
@@ -123,14 +73,21 @@ statement:
 	;
 declaration: 
 	DATA_TYPE assign_dec_lhs ';'
-	| DATA_TYPE assign_dec_lhs '=' expression ';'
+	| DATA_TYPE assign_dec_lhs '=' expression ';' { 
+		sprintf(temp, "%s = t%d", $2, temp_index-1);
+		add_tac(temp);
+	 }
 	| ID assign_dec_lhs ';' // Class
 	| ID assign_dec_lhs '=' expression ';' // Class
 	;
 assignment:
 	assign_dec_lhs '=' expression ';'
 	| assign_dec_lhs '=' ID ';'
-	| assign_dec_lhs '=' NUMBER ';'
+	| assign_dec_lhs '=' NUMBER ';' { 
+		sprintf(temp, "t%d = %s", temp_index, $3);
+		add_tac(temp);
+		temp_index++;
+	 }
 	| assign_dec_lhs '=' CHAR ';'
 	| assign_dec_lhs '=' STRING ';'
 	;
@@ -139,7 +96,22 @@ assign_dec_lhs:
 	| ID
 	;
 if_statement:
-	IF '(' expression ')' '{' statement_list '}' ELSE '{' statement_list '}'
+	IF '(' expression ')' '{' statement_list '}' ELSE '{' statement_list '}' { 
+		sprintf(temp, "if (%s) goto L%d", $3, label_index); // If cond
+		add_tac(temp);
+
+		sprintf(temp, "goto L%d", label_index + 1); // not(If cond)
+		add_tac(temp);
+
+		sprintf(temp, "L%d:\n%s", label_index, $6); // If body
+		add_tac(temp);
+		label_index++;
+
+		sprintf(temp, "L%d:\n%s", label_index, $10); // Else body
+		add_tac(temp);
+		label_index++;
+
+	}
 	| IF '(' expression ')' '{' statement_list '}' ELSE '{' '}'
 	| IF '(' expression ')' '{' statement_list '}' ELSE statement
 	| IF '(' expression ')' '{' statement_list '}'
@@ -159,16 +131,28 @@ expression:
 	| NEW ID '(' expression_list ')'
 	| function_call
 	| expression LOGICAL_OP expression
-	| expression ARITHMETIC_OP expression { printf("%s %s %s", $1, $2, $3); add_tac($1, $3, $2); } ;
+	| expression ARITHMETIC_OP expression { 
+		sprintf(temp, "t%d = %s %s %s", temp_index, $1, $2, $3);
+		add_tac(temp);
+		temp_index++;
+	 }
 	| expression ARITH_ASSIGN_OP expression
-	| expression RELATIONAL_OP expression
+	| expression RELATIONAL_OP expression { 
+		sprintf(temp, "t%d = %s %s %s", temp_index, $1, $2, $3);
+		add_tac(temp);
+		temp_index++;
+	 }
 	| expression BITWISE_OP expression
 	| UNARY_OP expression
 	| expression UNARY_OP
 	| ID '[' expression ']'
 	| '{' expression_list '}'
 	| ID '.' ID
-	| NUMBER
+	| NUMBER { 
+		sprintf(temp, "t%d = %s", temp_index, $1);
+		add_tac(temp);
+		temp_index++;
+	 }
 	| ID
 	| CHAR
 	| STRING
@@ -200,12 +184,14 @@ int yywrap() {
 }
 
 int main(void) {
-	printf("\n--- Matched TACs ---\n");
+	temp =  (char*) malloc(sizeof(char) * 100);
 	yyparse();
 
     if (!error) {
-        printf("\n--- Final TAC table ---\n");
-		print_tac();
+        printf("\n--- TAC ---\n");
+		for(int i = 0; i < tac_index; i++) {
+			printf("%s\n", tac[i]);
+		}
     }
     return 0;
 }
