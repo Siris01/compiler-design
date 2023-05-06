@@ -74,55 +74,27 @@ statement:
 declaration: 
 	DATA_TYPE assign_dec_lhs ';'
 	| DATA_TYPE assign_dec_lhs '=' expression ';' { 
-		sprintf(temp, "%s = t%d", $2, temp_index-1);
+		sprintf(temp, "%s = %s", $2, $4);
 		add_tac(temp);
 	 }
 	| ID assign_dec_lhs ';' // Class
 	| ID assign_dec_lhs '=' expression ';' // Class
 	;
 assignment:
-	assign_dec_lhs '=' expression ';'
-	| assign_dec_lhs '=' ID ';'
-	| assign_dec_lhs '=' NUMBER ';' { 
-		sprintf(temp, "t%d = %s", temp_index, $3);
+	assign_dec_lhs '=' expression ';' { 
+		sprintf(temp, "%s = %s", $1, $3);
 		add_tac(temp);
-		temp_index++;
-	 }
-	| assign_dec_lhs '=' CHAR ';'
-	| assign_dec_lhs '=' STRING ';'
-	;
+	 };
 assign_dec_lhs:
 	ID '[' expression ']'
 	| ID
 	;
 if_statement:
-	IF '(' expression ')' '{' statement_list '}' ELSE '{' statement_list '}' { 
-		sprintf(temp, "if (%s) goto L%d", $3, label_index); // If cond
-		add_tac(temp);
-
-		sprintf(temp, "goto L%d", label_index + 1); // not(If cond)
-		add_tac(temp);
-
-		sprintf(temp, "L%d:\n%s", label_index, $6); // If body
-		add_tac(temp);
-		label_index++;
-
-		sprintf(temp, "L%d:\n%s", label_index, $10); // Else body
-		add_tac(temp);
-		label_index++;
-
-	}
-	| IF '(' expression ')' '{' statement_list '}' ELSE '{' '}'
-	| IF '(' expression ')' '{' statement_list '}' ELSE statement
+	IF '(' expression ')' {} '{' statement_list '}' {} ELSE '{' statement_list '}'
 	| IF '(' expression ')' '{' statement_list '}'
-	| IF '(' expression ')' statement ELSE '{' statement_list '}'
-	| IF '(' expression ')' statement ELSE '{' '}'
-	| IF '(' expression ')' statement ELSE statement
-	| IF '(' expression ')' statement
 	;
 loop_statement:
-	FOR '(' DATA_TYPE ID '=' expression ';' expression ';' expression ')' '{' statement_list '}'
-	| FOR '(' DATA_TYPE ID '=' expression ';' expression ';' expression ')' statement
+	FOR '(' DATA_TYPE ID '=' expression ';' expression ';' expression ')' '{' statement_list '}';
 print_statement:
 	PRINT '(' expression ')' ';'
 	| PRINT '(' ')' ';'
@@ -134,12 +106,20 @@ expression:
 	| expression ARITHMETIC_OP expression { 
 		sprintf(temp, "t%d = %s %s %s", temp_index, $1, $2, $3);
 		add_tac(temp);
+		
+		sprintf(temp, "t%d", temp_index);
+		$$ = strdup(temp);
+
 		temp_index++;
 	 }
 	| expression ARITH_ASSIGN_OP expression
 	| expression RELATIONAL_OP expression { 
 		sprintf(temp, "t%d = %s %s %s", temp_index, $1, $2, $3);
 		add_tac(temp);
+
+		sprintf(temp, "t%d", temp_index);
+		$$ = strdup(temp);
+		
 		temp_index++;
 	 }
 	| expression BITWISE_OP expression
@@ -148,11 +128,8 @@ expression:
 	| ID '[' expression ']'
 	| '{' expression_list '}'
 	| ID '.' ID
-	| NUMBER { 
-		sprintf(temp, "t%d = %s", temp_index, $1);
-		add_tac(temp);
-		temp_index++;
-	 }
+	| NUMBER 
+	| '-' NUMBER
 	| ID
 	| CHAR
 	| STRING

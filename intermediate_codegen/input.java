@@ -12,7 +12,7 @@ class Main {
 		}
 
 		int fac = 1;
-		for (int i = i; i <= 10; i++) { // For loop (Flow of control)
+		for (int i = 1; i <= 10; i++) { // For loop (Flow of control)
 			fac = fac * i;
 		}
 	}
