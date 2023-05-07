@@ -15,10 +15,16 @@
 				count++;
 			i++;
 		}
+		
 		return count;
 	}
 
 	#define YYSTYPE char *
+	#define DEBUG 0 //set to 1 for debbuging syntax errors
+
+	void print(char* str) {
+		if (DEBUG) printf("%s\n", str);
+	}
 %}
 
 digit   [0-9]
@@ -45,33 +51,33 @@ char_const '.*'
 string_const \"[^"\n]*\"
 
 %%
-"class" { return CLASS; }
-"new" { return NEW; }
-"return" { return RETURN; }
-"static" { return STATIC; }
-"if" { return IF; }
-"else" { return ELSE; }
-"for" { return FOR; }
-"System.out.println" { return PRINT; }
+"class" { print(yytext); return CLASS; }
+"new" { print(yytext); return NEW; }
+"return" { print(yytext); return RETURN; }
+"static" { print(yytext); return STATIC; }
+"if" { print(yytext); return IF; }
+"else" { print(yytext); return ELSE; }
+"for" { print(yytext); return FOR; }
+"System.out.println" { print(yytext); return PRINT; }
 {newline} { line++; }
 {space}+ { }
 {single_comment} { }
 {multi_comment} { line+=num_of_newlines(yytext); }
-{visibility} { return VISIBILITY; }
-{data_type} { return DATA_TYPE; }
-{keyword} { return *yytext; }
-{id} { yylval.str = strdup(yytext); return ID; }
-[=] { yylval.str = strdup(yytext); return *yytext; }
-{hex_const}|{number} { yylval.str = strdup(yytext); return NUMBER; }
-{float_number} { yylval.str = strdup(yytext); return NUMBER; }
-{arithmetic}[=] { yylval.str = strdup(yytext); return ARITH_ASSIGN_OP; }
-{logical} { yylval.str = strdup(yytext); return LOGICAL_OP; }
-{bitwise} { yylval.str = strdup(yytext); return BITWISE_OP; }
-{unary} { yylval.str = strdup(yytext); return UNARY_OP; }
-{relational} { yylval.str = strdup(yytext); return RELATIONAL_OP; }
-{arithmetic} { yylval.str = strdup(yytext); return ARITHMETIC_OP; }
-{char_const} { yylval.str = strdup(yytext); return CHAR; }
-{string_const} { yylval.str = strdup(yytext); return STRING; }
-{special} { yylval.str = strdup(yytext); return *yytext; }
-. { return *yytext; }
+{visibility} { print(yytext); return VISIBILITY; }
+{data_type} { print(yytext); return DATA_TYPE; }
+{keyword} { print(yytext); return *yytext; }
+{id} { yylval.str = strdup(yytext); print(yytext); return ID; }
+[=] { yylval.str = strdup(yytext); print(yytext); return *yytext; }
+{hex_const}|{number} { yylval.str = strdup(yytext); print(yytext); return NUMBER; }
+{float_number} { yylval.str = strdup(yytext); print(yytext); return NUMBER; }
+{arithmetic}[=] { yylval.str = strdup(yytext); print(yytext); return ARITH_ASSIGN_OP; }
+{logical} { yylval.str = strdup(yytext); print(yytext); return LOGICAL_OP; }
+{bitwise} { yylval.str = strdup(yytext); print(yytext); return BITWISE_OP; }
+{unary} { yylval.str = strdup(yytext); print(yytext); return UNARY_OP; }
+{relational} { yylval.str = strdup(yytext); print(yytext); return RELATIONAL_OP; }
+{arithmetic} { yylval.str = strdup(yytext); print(yytext); return ARITHMETIC_OP; }
+{char_const} { yylval.str = strdup(yytext); print(yytext); return CHAR; }
+{string_const} { yylval.str = strdup(yytext); print(yytext); return STRING; }
+{special} { yylval.str = strdup(yytext); print(yytext); return *yytext; }
+. { print(yytext); return *yytext; }
 %%

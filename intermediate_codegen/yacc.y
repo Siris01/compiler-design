@@ -4,6 +4,7 @@
 #include <string.h>
 #include <math.h>
 #define MAX_TACS 1024
+#define TEMP_SIZE 1024000
 
 int yylex(void);
 int yyerror();
@@ -22,6 +23,14 @@ void add_tac(char* str) {
 	strcpy(tac[tac_index], str);
 	tac_index++;
 }
+
+void add_tacs(char* str) {
+	char* token = strtok(str, "\n");
+	while(token != NULL) {
+		add_tac(token);
+		token = strtok(NULL, "\n");
+	}
+}
 %}
 
 %start program
@@ -34,7 +43,15 @@ void add_tac(char* str) {
     char *str;
 }
 
-%type<str> expression statement_list assign_dec_lhs assignment RELATIONAL_OP ARITHMETIC_OP NUMBER
+%type<str> ID VISIBILITY DATA_TYPE  
+%type<str> CHAR STRING NUMBER
+%type<str> LOGICAL_OP UNARY_OP BITWISE_OP RELATIONAL_OP ARITHMETIC_OP ARITH_ASSIGN_OP
+%type<str> CLASS NEW RETURN STATIC IF ELSE FOR PRINT
+
+%type<str> program function_list function parameter_list parameter
+%type<str> main_prog statement_list statement declaration assignment 
+%type<str> assign_dec_lhs if_statement loop_statement print_statement 
+%type<str> expression function_call chain_of_objects expression_list
 %%
 
 program: 
@@ -45,10 +62,10 @@ function_list:
 	| /* empty */
 	;
 function: 
-	VISIBILITY STATIC DATA_TYPE ID '(' parameter_list ')' '{' statement_list '}'
-	| STATIC DATA_TYPE ID '(' parameter_list ')' '{' statement_list '}'
-	| VISIBILITY DATA_TYPE ID '(' parameter_list ')' '{' statement_list '}'
-	| DATA_TYPE ID '(' parameter_list ')' '{' statement_list '}'
+	VISIBILITY STATIC DATA_TYPE ID '(' parameter_list ')' '{' main_prog '}'
+	| STATIC DATA_TYPE ID '(' parameter_list ')' '{' main_prog '}'
+	| VISIBILITY DATA_TYPE ID '(' parameter_list ')' '{' main_prog '}'
+	| DATA_TYPE ID '(' parameter_list ')' '{' main_prog '}'
 parameter_list: 
 	parameter_list ',' parameter
 	| parameter
@@ -57,10 +74,16 @@ parameter_list:
 parameter: 
 	DATA_TYPE ID
 	| DATA_TYPE ID '[' ']'
+main_prog: statement_list { add_tacs($1); }
 statement_list: 
-	statement_list statement
+	statement_list statement {
+		sprintf(temp, "%s\n%s", $1, $2);
+		$$ = strdup(temp);
+	}
 	| statement_list statement RETURN expression ';'
-	| statement
+	| statement {
+		$$ = strdup($1);
+	}
 	| /* empty */
 	;
 statement: 
@@ -75,7 +98,7 @@ declaration:
 	DATA_TYPE assign_dec_lhs ';'
 	| DATA_TYPE assign_dec_lhs '=' expression ';' { 
 		sprintf(temp, "%s = %s", $2, $4);
-		add_tac(temp);
+		$$ = strdup(temp);
 	 }
 	| ID assign_dec_lhs ';' // Class
 	| ID assign_dec_lhs '=' expression ';' // Class
@@ -83,18 +106,26 @@ declaration:
 assignment:
 	assign_dec_lhs '=' expression ';' { 
 		sprintf(temp, "%s = %s", $1, $3);
-		add_tac(temp);
+		$$ = strdup(temp);
 	 };
 assign_dec_lhs:
 	ID '[' expression ']'
 	| ID
 	;
 if_statement:
-	IF '(' expression ')' {} '{' statement_list '}' {} ELSE '{' statement_list '}'
+	IF '(' expression ')' '{' statement_list '}' ELSE '{' statement_list '}' {		
+		sprintf(temp, "if (%s) goto L%dt\ngoto L%df\nL%dt:%s\nL%df:%s", $3, label_index, label_index, label_index, $6, label_index, $10);
+		$$ = strdup(temp);
+		label_index++;
+	}
 	| IF '(' expression ')' '{' statement_list '}'
 	;
 loop_statement:
-	FOR '(' DATA_TYPE ID '=' expression ';' expression ';' expression ')' '{' statement_list '}';
+	FOR '(' declaration expression ';' expression ')' '{' statement_list '}' {
+		sprintf(temp, "%s\nL%dl:if (%s) goto L%dt\ngoto L%df\nL%dt: %s\n%s\ngoto L%dl\nL%df: ", $3, label_index, $4, label_index, label_index, label_index, $9, $6, label_index, label_index);
+		$$ = strdup(temp);
+		label_index++;
+	}
 print_statement:
 	PRINT '(' expression ')' ';'
 	| PRINT '(' ')' ';'
@@ -104,27 +135,22 @@ expression:
 	| function_call
 	| expression LOGICAL_OP expression
 	| expression ARITHMETIC_OP expression { 
-		sprintf(temp, "t%d = %s %s %s", temp_index, $1, $2, $3);
-		add_tac(temp);
-		
-		sprintf(temp, "t%d", temp_index);
+		sprintf(temp, "%s %s %s", $1, $2, $3);
 		$$ = strdup(temp);
-
-		temp_index++;
 	 }
 	| expression ARITH_ASSIGN_OP expression
 	| expression RELATIONAL_OP expression { 
-		sprintf(temp, "t%d = %s %s %s", temp_index, $1, $2, $3);
-		add_tac(temp);
-
-		sprintf(temp, "t%d", temp_index);
+		sprintf(temp, "%s %s %s", $1, $2, $3);
 		$$ = strdup(temp);
-		
-		temp_index++;
 	 }
 	| expression BITWISE_OP expression
 	| UNARY_OP expression
-	| expression UNARY_OP
+	| expression UNARY_OP {
+		if (strcmp($2, "++") == 0) {
+			sprintf(temp, "%s = %s + 1", $1, $1);
+			$$ = strdup(temp);
+		}
+	}
 	| ID '[' expression ']'
 	| '{' expression_list '}'
 	| ID '.' ID
@@ -161,7 +187,7 @@ int yywrap() {
 }
 
 int main(void) {
-	temp =  (char*) malloc(sizeof(char) * 100);
+	temp =  (char*) malloc(sizeof(char) * TEMP_SIZE);
 	yyparse();
 
     if (!error) {
