@@ -1,4 +1,3 @@
-clear
 rm ./a.out
 lex lex.l
 yacc -Wnone -d yacc.y
