@@ -1,97 +1,274 @@
+#include <ctype.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include "utils.h"
+#include <unistd.h>
 
 #define SIZE 1024
+char *buffer;
 
-struct tac {
-  int type; /*
-    1: result = arg1 op? arg2?
-    2: goto label
-    3: if goto_if_exp goto label
-    4: label
-  */
-  char *op;
-  char *arg1;
-  char *arg2;
-  char *result;
-  char *goto_if_exp; // type = 3
-  char *goto_label;  // type = 2,3
-  char *label;       // type = 4
-};
-
-struct tac tacs[SIZE];
-int tac_size = 0;
-char buffer[SIZE];
-
-void parse_tac(char *line) {
-  char *l = strdup(line);
-  struct tac tac;
-  tac.type = 0;
-  tac.op = NULL;
-  tac.arg1 = NULL;
-  tac.arg2 = NULL;
-  tac.result = NULL;
-  tac.goto_if_exp = NULL;
-  tac.goto_label = NULL;
-
-  char *token = strtok(line, " ");
-  if (strcmp(token, "goto") == 0) {
-    tac.type = 2;
-    tac.goto_label = strtok(NULL, " ");
-  } else if (strcmp(token, "if") == 0) {
-    tac.type = 3;
-    tac.arg1 = strdup(l); // FIX: Parse this better
-  } else if (token[strlen(token) - 1] == ':') {
-    tac.type = 4;
-    tac.label = token;
-  } else {
-    tac.type = 1;
-    tac.result = token;
-    strtok(NULL, " ");
-    tac.arg1 = strtok(NULL, " ");
-    tac.op = strtok(NULL, " ");
-    tac.arg2 = strtok(NULL, " ");
+char tokens[10][10];
+int occurs[10];
+int token_id = 0;
+/*CONSTANT FOLDING */
+void constant_folding(char *line) {
+  int len = strlen(line);
+  int count = 0;
+  char *token;
+  char string[100];
+  char str[100];
+  strcpy(string, line);
+  token = strtok(line, " ");
+  int digit = 0;
+  int num1 = 0;
+  int num2 = 0;
+  int knt = 0;
+  char op[2];
+  while (token != NULL) {
+    strcpy(str, token);
+    knt++;
+    if (knt < 2) {
+      printf("%s = ", token);
+      token = strtok(NULL, " ");
+      continue;
+    }
+    int token_len = strlen(str);
+    int number = 0;
+    int yes = 0;
+    digit = 0;
+    for (int j = 0; j < token_len; j++) {
+      if (isdigit(str[j]) != 0) {
+        yes = 1;
+        digit++;
+      }
+    }
+    if (digit == token_len && count == 0 && yes != 0) {
+      num1 = atoi(&token[0]);
+      // printf("num1 : %d\n",num1);
+      count = 1;
+      token = strtok(NULL, " ");
+      continue;
+    }
+    if (digit == token_len && count == 1 && yes != 0) {
+      num2 = atoi(&token[0]);
+      count += 1;
+      // printf("num2 : %d\n",num2);
+    }
+    if (strcmp(token, "+") == 0 || strcmp(token, "-") == 0 ||
+        strcmp(token, "/") == 0 || strcmp(token, "*") == 0) {
+      strcpy(op, token);
+      // printf("operator : %s",op);
+    }
+    token = strtok(NULL, " ");
   }
-
-  tacs[tac_size++] = tac;
-  free(l);
+  if (count != 2) {
+    printf("no constant folding\n");
+    printf("\n%s\n", string);
+    return;
+  }
+  if (strcmp(op, "+") == 0)
+    printf("%d\n", num1 + num2);
+  else if (strcmp(op, "-") == 0)
+    printf("%d\n", num1 - num2);
+  else if (strcmp(op, "*") == 0)
+    printf("%d\n", num1 * num2);
+  else if (strcmp(op, "/") == 0)
+    printf("%d\n", num1 / num2);
+  else
+    printf("%s", line);
 }
 
-void print_tacs() {
-  for (int i = 0; i < tac_size; i++) {
-    struct tac tac = tacs[i];
-    if (tac.type == 1) {
-      printf("%s = %s %s %s\n", tac.result, tac.arg1, tac.op, tac.arg2);
-    } else if (tac.type == 2) {
-      printf("goto %s\n", tac.goto_label);
-    } else if (tac.type == 3) {
-      printf("%s\n", tac.arg1); // FIX: Parse this better
-    } else if (tac.type == 4) {
-      printf("%s:", tac.label);
+/*ALGEBRAIC IDENTITIES*/
+void algebraic_identities(char *line) {
+  char string[1000];
+  strcpy(string, line);
+  char *token = strtok(line, " ");
+  char t0[100];
+  char t1[100];
+  char t2[100];
+  char op[2];
+  char t3[100];
+  int knt = 0;
+  bzero(&t0, sizeof(t0));
+  while (token != NULL) {
+    if (knt == 0) {
+      // printf("%s",token);
+      strcpy(t0, token);
+      token = strtok(NULL, " ");
+      // token = strtok(NULL," ");
+    } else if (knt == 1)
+      strcpy(t1, token);
+    else if (knt == 2)
+      strcpy(op, token);
+    else if (knt == 3)
+      strcpy(t2, token);
+    token = strtok(NULL, " ");
+    knt++;
+  }
+  // printf("\n%s\t%s\t%s\t%s\t\n",t0,t1,op,t2);
+  if (strcmp(t0, t1) == 0) {
+    if ((strcmp(op, "+") == 0 && strcmp(t2, "0") == 0) ||
+        (strcmp(op, "*") == 0 && strcmp(t2, "1") == 0))
+      printf("\nAlgebraic identity found! Code removed\n");
+    else
+      printf("\n%s\n", string);
+  } else if (strcmp(op, "^") == 0 && strcmp(t2, "2") == 0) {
+    printf("\n%s = %s * %s\n", t0, t1, t1);
+  } else {
+    printf("\n%s\n", string);
+  }
+}
+/* STRENGTH REDUCTION */
+void strength_reduction(char *line) {
+  char string[1000];
+  strcpy(string, line);
+  char *token = strtok(line, " ");
+  char t0[100];
+  char t1[100];
+  char t2[100];
+  char op[2];
+  char t3[100];
+  int knt = 0;
+  bzero(&t0, sizeof(t0));
+  while (token != NULL) {
+    if (knt == 0) {
+      strcpy(t0, token);
+      token = strtok(NULL, " ");
+    } else if (knt == 1)
+      strcpy(t1, token);
+    else if (knt == 2)
+      strcpy(op, token);
+    else if (knt == 3)
+      strcpy(t2, token);
+    token = strtok(NULL, " ");
+    knt++;
+  }
+  if (strcmp(op, "*") == 0 && strcmp(t2, "2") == 0)
+    printf("\n%s = %s << 1\n", t0, t1);
+  else
+    printf("%s", string);
+}
+/* DEAD CODE ELIMINATION */
+void dead_code(char line[100]) {
+  char string[1000];
+  strcpy(string, line);
+  printf("\n%s", line);
+  char *token = strtok(line, " ");
+  char t0[100];
+  char t1[100];
+  char t2[100];
+  char op[2];
+  char t3[100];
+  int knt = 0;
+  bzero(&t0, sizeof(t0));
+  while (token != NULL) {
+    if (knt == 0) {
+      strcpy(t0, token);
+      strcpy(tokens[token_id], token);
+      token_id++;
+      token = strtok(NULL, " ");
+    } else if (knt == 1) {
+      strcpy(t1, token);
+      for (int i = 0; i < token_id; i++) {
+        if (strcmp(t1, tokens[i]) == 0)
+          occurs[i] = 1;
+      }
+    } else if (knt == 2)
+      strcpy(op, token);
+    else if (knt == 3) {
+      strcpy(t2, token);
+      for (int i = 0; i < token_id; i++) {
+        if (strcmp(t1, tokens[i]) == 0)
+          occurs[i] = 1;
+      }
+    }
+    token = strtok(NULL, " ");
+    knt++;
+  }
+}
+
+int main(int argc, char **argv) {
+  int file;
+  file = open(argv[1], O_RDONLY);
+
+  if (strcmp(argv[2], "const") == 0) {
+    printf("\nConstant Folding");
+    char line[100];
+    char c;
+    int n = 0, t;
+    t = read(file, &c, 1);
+    int i = 0;
+    while (t != 0) {
+      if (c == '\n') {
+        i = 0;
+        constant_folding(line);
+        t = read(file, &c, 1);
+        continue;
+      }
+      line[i] = c;
+      i++;
+      t = read(file, &c, 1);
+    };
+
+  } else if (strcmp(argv[2], "alg") == 0) {
+    printf("\nAlgebraic Identities");
+    char line[100];
+    char c;
+    int n = 0, t;
+    t = read(file, &c, 1);
+    int i = 0;
+    while (t != 0) {
+      if (c == '\n') {
+        i = 0;
+        algebraic_identities(line);
+        t = read(file, &c, 1);
+        continue;
+      }
+      line[i] = c;
+      i++;
+      t = read(file, &c, 1);
+    };
+  } else if (strcmp(argv[2], "strength") == 0) {
+    printf("\nStrength Reduction");
+    char line[100];
+    char c;
+    int n = 0, t;
+    t = read(file, &c, 1);
+    int i = 0;
+    while (t != 0) {
+      if (c == '\n') {
+        i = 0;
+        strength_reduction(line);
+        t = read(file, &c, 1);
+        continue;
+      }
+      line[i] = c;
+      i++;
+      t = read(file, &c, 1);
+    };
+  } else {
+    printf("\nDead Code Elimination");
+    char line[100];
+    char c;
+    int n = 0, t;
+    t = read(file, &c, 1);
+    int i = 0;
+    while (t != 0) {
+      if (c == '\n') {
+        i = 0;
+        dead_code(line);
+        t = read(file, &c, 1);
+        continue;
+      }
+      line[i] = c;
+      i++;
+      t = read(file, &c, 1);
+    };
+
+    for (i = 0; i < token_id; i++) {
+      if (occurs[i] == 0)
+        printf("\nDead code at line %d", i + 1);
     }
   }
-}
-
-int main(int argc, char *argv[]) {
-  if (argc != 2) {
-    printf("Usage: %s input.tac\n", argv[0]);
-    return 1;
-  }
-
-  FILE *fp = fopen(argv[1], "r");
-  if (fp == NULL) {
-    printf("Error: cannot open file %s\n", argv[1]);
-    return 1;
-  }
-
-  while (fgets(buffer, SIZE, fp) != NULL) {
-    parse_tac(buffer);
-  }
-
-  print_tacs();
-
-  return 0;
 }
